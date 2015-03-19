@@ -50,7 +50,7 @@ public class JLCloudKitSync: NSObject {
 
             NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("contextDidSave:"), name: NSManagedObjectContextDidSaveNotification, object: self.context)
             
-            completionHandler(error)
+            dispatch_async(dispatch_get_main_queue()) { completionHandler(error) }
         }
         db.addOperation(operation)
     }
@@ -62,13 +62,17 @@ public class JLCloudKitSync: NSObject {
         let operation = CKFetchRecordChangesOperation(recordZoneID: self.zoneID, previousServerChangeToken: nil)
         operation.resultsLimit = 1
         operation.recordChangedBlock = { exists = $0 != nil }
-        operation.completionBlock = { completionHandler(entitiesExist: exists, error: nil) }
+        operation.completionBlock = {
+            dispatch_async(dispatch_get_main_queue()) {
+                completionHandler(entitiesExist: exists, error: nil)
+            }
+        }
         db.addOperation(operation)
     }
     
     // Fully sync
     public func performFullSync(policy: JLCloudKitFullSyncPolicy) {
-        NSNotificationCenter.defaultCenter().postNotificationName(JLCloudKitSyncWillBeginNotification, object: nil)
+        self.notifySyncBegin()
         setPreviousToken(nil)
         
         switch policy {
@@ -79,7 +83,7 @@ public class JLCloudKitSync: NSObject {
     
     // Incremental sync
     public func performSync() {
-        NSNotificationCenter.defaultCenter().postNotificationName(JLCloudKitSyncWillBeginNotification, object: nil)
+        self.notifySyncBegin()
         self.performSyncInternal()
     }
     
@@ -186,9 +190,7 @@ public class JLCloudKitSync: NSObject {
                     self.saveBackingContext()
                 })
                 
-                var info: [NSObject: AnyObject] = [ : ]
-                if err != nil { info["error"] = err }
-                NSNotificationCenter.defaultCenter().postNotificationName(JLCloudKitSyncDidEndNotification, object: nil, userInfo: info)
+                self.notifySyncEnd(err)
             }
             operation.savePolicy = .IfServerRecordUnchanged
             CKContainer.defaultContainer().privateCloudDatabase.addOperation(operation)
@@ -571,6 +573,20 @@ public class JLCloudKitSync: NSObject {
             let record = recordMappings[recordID]!
             item.lastModified = record.modificationDate
             item.status = NSNumber(integer: JLCloudKitItemStatus.Clean.rawValue)
+        }
+    }
+    
+    func notifySyncBegin() {
+        dispatch_async(dispatch_get_main_queue()) {
+            NSNotificationCenter.defaultCenter().postNotificationName(JLCloudKitSyncWillBeginNotification, object: nil)
+        }
+    }
+    
+    func notifySyncEnd(error: NSError?) {
+        dispatch_async(dispatch_get_main_queue()) {
+            var info: [NSObject: AnyObject] = [ : ]
+            if error != nil { info["error"] = error }
+            NSNotificationCenter.defaultCenter().postNotificationName(JLCloudKitSyncDidEndNotification, object: nil, userInfo: info)
         }
     }
 }
