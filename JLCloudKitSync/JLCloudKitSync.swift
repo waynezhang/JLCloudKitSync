@@ -146,7 +146,9 @@ public class JLCloudKitSync: NSObject {
         }
         
         // deleted
-        removeFromSyncQueue(deleteRecordIDs.map { $0.recordName! })
+        let deletedRecordIDStrings = deleteRecordIDs.map { $0.recordName! }
+        removeLocalObject(deletedRecordIDStrings)
+        removeFromSyncQueue(deletedRecordIDStrings)
         
         saveBackingContext()
         saveContext(context, name: "Content")
@@ -226,6 +228,7 @@ public class JLCloudKitSync: NSObject {
         }
         if object == nil {
             object = NSManagedObject(entity: NSEntityDescription.entityForName(metaEntityName, inManagedObjectContext: backingContext)!, insertIntoManagedObjectContext: backingContext)
+            object!.setValue("server_token", forKey: "name")
         }
         if token != nil {
             let data = NSKeyedArchiver.archivedDataWithRootObject(token!)
@@ -267,8 +270,9 @@ public class JLCloudKitSync: NSObject {
     // Map local objects to sync items
     func addLocalObjectsToSyncQueue<T: SequenceType where T.Generator.Element: NSManagedObject>(set: T?, status: JLCloudKitItemStatus) -> Int {
         if set == nil { return 0 }
-        
+
         return reduce(set!, 0) { (count, object) in
+            println("\( object.objectID) \( object.objectID.temporaryID ) ")
             var item = self.fetchSyncItem(object.objectID)
             if item == nil {
                 item = JLCloudKitItem(managedObjectContext: self.backingContext)
@@ -276,6 +280,13 @@ public class JLCloudKitSync: NSObject {
             self.updateSyncItem(item!, object: object, status: status)
             
             return count + 1
+        }
+    }
+    
+    func removeLocalObject(recordIDs: [String]) {
+        let objects = self.fetchLocalObjects(recordIDs)
+        for (_, object) in objects {
+            self.context.deleteObject(object)
         }
     }
 
