@@ -40,11 +40,16 @@ public class JLCloudKitSync: NSObject {
     
     // Set work zone name, must be called before other APIs
     public func setupWorkZone(name: String, completionHandler: (NSError!) -> Void) {
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NSManagedObjectContextDidSaveNotification, object: self.context)
+        
         let db = CKContainer.defaultContainer().privateCloudDatabase
         let operation = CKModifyRecordZonesOperation(recordZonesToSave: [ CKRecordZone(zoneName: name) ], recordZoneIDsToDelete: nil)
         operation.modifyRecordZonesCompletionBlock = { savedZones, _, error in
             self.info("Work Zone \( name ) save result: \( error )")
             self.zoneName = name
+
+            NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("contextDidSave:"), name: NSManagedObjectContextDidSaveNotification, object: self.context)
+            
             completionHandler(error)
         }
         db.addOperation(operation)
@@ -447,8 +452,6 @@ public class JLCloudKitSync: NSObject {
             info("Store added to \( storeURL() )")
         }
         backingContext.persistentStoreCoordinator = persistentCoordinator
-        
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("contextDidSave:"), name: NSManagedObjectContextDidSaveNotification, object: context)
     }
     
     func generateModel() -> NSManagedObjectModel {
