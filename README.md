@@ -17,7 +17,7 @@ syncer.setupWorkZone("Your Zone Name Here", completionHandler: { error -> Void i
 Discovery
 
 ```swift
-syncer.discoverEntities { (exists, error) -> Void in
+syncer.discoverEntities(recordType: String) { (exists, error) -> Void in
 	if exists {
 		// There is already data in the cloud
 	} else {

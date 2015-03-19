@@ -56,12 +56,14 @@ public class JLCloudKitSync: NSObject {
     }
     
     // Find if there is data in the cloud
-    public func discoverEntities(completionHandler: (entitiesExist: Bool, error: NSError!) -> Void) {
+    public func discoverEntities(recordType: String, completionHandler: (entitiesExist: Bool, error: NSError!) -> Void) {
         let db = CKContainer.defaultContainer().privateCloudDatabase
         var exists = false
-        let operation = CKFetchRecordChangesOperation(recordZoneID: self.zoneID, previousServerChangeToken: nil)
+        let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+        let operation = CKQueryOperation(query: query)
+        operation.zoneID = self.zoneID
         operation.resultsLimit = 1
-        operation.recordChangedBlock = { exists = $0 != nil }
+        operation.recordFetchedBlock = { exists = $0 != nil }
         operation.completionBlock = {
             dispatch_async(dispatch_get_main_queue()) {
                 completionHandler(entitiesExist: exists, error: nil)
