@@ -41,7 +41,7 @@ Normal Sync
 ```swift
 // Sync will be automatically triggered after context is saved.
 // Or you can perform a sync in any time by performSync()
-syncer,performSync()
+syncer.performSync()
 ```
 	
 Notifications
