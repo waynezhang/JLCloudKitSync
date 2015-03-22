@@ -190,7 +190,9 @@ public class JLCloudKitSync: NSObject {
                 
                 self.fetchServerChanges(self.previousToken(), completionHandler: {
                     self.mergeServerChanges($0, deleteRecordIDs: $1)
-                    self.setPreviousToken($2)
+                    if ($2 != nil) {
+                        self.setPreviousToken($2)
+                    }
                     self.saveBackingContext()
                 })
                 
@@ -201,7 +203,7 @@ public class JLCloudKitSync: NSObject {
         }
     }
     
-    func fetchServerChanges(previousToken: CKServerChangeToken!, completionHandler: ([CKRecord], [CKRecordID], CKServerChangeToken) -> Void) {
+    func fetchServerChanges(previousToken: CKServerChangeToken!, completionHandler: ([CKRecord], [CKRecordID], CKServerChangeToken!) -> Void) {
         var changed: [CKRecord] = [ ]
         var deleted: [CKRecordID] = [ ]
 
@@ -209,7 +211,7 @@ public class JLCloudKitSync: NSObject {
         ope.recordChangedBlock = { changed.append($0) }
         ope.recordWithIDWasDeletedBlock = { deleted.append($0) }
         ope.fetchRecordChangesCompletionBlock = { token, data, err in
-            self.info("Server change: \( changed.count ) changed, \( deleted.count ) deleted")
+            self.info("Server change: \( changed.count ) changed, \( deleted.count ) deleted \( err )")
             completionHandler(changed, deleted, token)
         }
         CKContainer.defaultContainer().privateCloudDatabase.addOperation(ope)
