@@ -71,7 +71,7 @@ class JLCloudKitSyncTests: XCTestCase {
     
     func testDiscovery() {
         let ex1 = self.expectationWithDescription("")
-        syncer.discoverEntities { (exists, error) -> Void in
+        syncer.discoverEntities("Group") { (exists, error) -> Void in
             XCTAssertFalse(exists, "")
             ex1.fulfill()
         }
@@ -79,7 +79,7 @@ class JLCloudKitSyncTests: XCTestCase {
         
         self.createGroupRecord("test group")
         let ex2 = self.expectationWithDescription("")
-        syncer.discoverEntities { (exists, error) -> Void in
+        syncer.discoverEntities("Group") { (exists, error) -> Void in
             XCTAssertTrue(exists, "")
             ex2.fulfill()
         }
