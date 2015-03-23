@@ -23,6 +23,6 @@ internal extension JLCloudKitSync {
     }
     
     func log(type: String, message: String) {
-        println("[\(type)] JLCloudKitSync: " + message)
+        NSLog("[\(type)] JLCloudKitSync: " + message)
     }
 }
