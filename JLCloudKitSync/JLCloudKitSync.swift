@@ -49,7 +49,7 @@ public class JLCloudKitSync: NSObject {
             self.zoneName = name
 
             NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("contextDidSave:"), name: NSManagedObjectContextDidSaveNotification, object: self.context)
-            
+
             dispatch_async(dispatch_get_main_queue()) { completionHandler(error) }
         }
         db.addOperation(operation)
@@ -87,6 +87,19 @@ public class JLCloudKitSync: NSObject {
     public func performSync() {
         self.notifySyncBegin()
         self.performSyncInternal()
+    }
+    
+    // Wipe cloud data and sync queue
+    public func wipeDataInCloudKitAndCleanQueue(completionHandler: (NSError?) -> Void) {
+        clearDataInCloudKit { error in
+            self.clearData(self.backingContext, entityName: JLCloudKitItem.entityName())
+            completionHandler(error)
+        }
+    }
+    
+    // Stop sync
+    public func stopSync() {
+        NSNotificationCenter.defaultCenter().removeObserver(self, name: NSManagedObjectContextDidSaveNotification, object: self.context)
     }
     
     // MARK: - Sync
@@ -156,8 +169,7 @@ public class JLCloudKitSync: NSObject {
     
     // Full sync, replace data in cloud with local
     func performFullSyncFromLocal() {
-        clearDataInCloudKit { error in
-            self.clearData(self.backingContext, entityName: JLCloudKitItem.entityName())
+        wipeDataInCloudKitAndCleanQueue { err in
             self.addAllLocalDataToSyncQueue()
             self.saveBackingContext()
             self.performSyncInternal()
@@ -274,7 +286,6 @@ public class JLCloudKitSync: NSObject {
         if set == nil { return 0 }
 
         return reduce(set!, 0) { (count, object) in
-            println("\( object.objectID) \( object.objectID.temporaryID ) ")
             var item = self.fetchSyncItem(object.objectID)
             if item == nil {
                 item = JLCloudKitItem(managedObjectContext: self.backingContext)
