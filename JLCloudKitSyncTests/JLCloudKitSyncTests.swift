@@ -69,6 +69,10 @@ class JLCloudKitSyncTests: XCTestCase {
         super.tearDown()
     }
     
+    func testAA() {
+        self.createGroupRecord("test group")
+    }
+    
     func testDiscovery() {
         let ex1 = self.expectationWithDescription("")
         syncer.discoverEntities("Group") { (exists, error) -> Void in
@@ -78,6 +82,7 @@ class JLCloudKitSyncTests: XCTestCase {
         self.waitForExpectationsWithTimeout(5, handler: nil)
         
         self.createGroupRecord("test group")
+        sleep(3)
         let ex2 = self.expectationWithDescription("")
         syncer.discoverEntities("Group") { (exists, error) -> Void in
             XCTAssertTrue(exists, "")
@@ -129,7 +134,7 @@ class JLCloudKitSyncTests: XCTestCase {
         let group = fetchLocalObject("Group 2", entityName: "Group")
         XCTAssertNotNil(group, "")
 
-        XCTAssertEqual((item!.valueForKey("group")! as NSManagedObject).objectID, group!.objectID, "")
+        XCTAssertEqual((item!.valueForKey("group")! as! NSManagedObject).objectID, group!.objectID, "")
         
         group!.setValue("Group 3", forKey: "name")
         let ex1 = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
@@ -263,7 +268,7 @@ class JLCloudKitSyncTests: XCTestCase {
         req.predicate = NSPredicate(value: true)
         if let rs = self.context.executeFetchRequest(req, error: nil) {
             for e in rs {
-                self.context.deleteObject(e as NSManagedObject)
+                self.context.deleteObject(e as! NSManagedObject)
             }
         }
     }
@@ -308,7 +313,7 @@ class JLCloudKitSyncTests: XCTestCase {
     lazy var applicationDocumentsDirectory: NSURL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "com.cesariapp.ios.JLCloudKitSyncTestsHost" in the application's documents Application Support directory.
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        return urls[urls.count-1] as NSURL
+        return urls[urls.count-1] as! NSURL
         }()
     
     lazy var managedObjectModel: NSManagedObjectModel = {

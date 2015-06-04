@@ -63,6 +63,7 @@ public class JLCloudKitSync: NSObject {
         let operation = CKQueryOperation(query: query)
         operation.zoneID = self.zoneID
         operation.resultsLimit = 1
+        operation.desiredKeys = [ ]
         operation.recordFetchedBlock = { exists = $0 != nil }
         operation.completionBlock = {
             dispatch_async(dispatch_get_main_queue()) {
@@ -137,12 +138,12 @@ public class JLCloudKitSync: NSObject {
         // newly inserted
         for (recordID, record) in changedRecordMappings {
             info("insert item \( record.modificationDate )")
-            let entities = context.persistentStoreCoordinator!.managedObjectModel.entities.filter { ($0 as NSEntityDescription).name! == record.recordType }
+            let entities = context.persistentStoreCoordinator!.managedObjectModel.entities.filter { ($0 as! NSEntityDescription).name! == record.recordType }
             if entities.count == 0 {
                 warn("entity \( record.recordType ) not exists")
                 continue
             }
-            let object = NSManagedObject(entity: entities[0] as NSEntityDescription, insertIntoManagedObjectContext: context)
+            let object = NSManagedObject(entity: entities[0] as! NSEntityDescription, insertIntoManagedObjectContext: context)
             let item = JLCloudKitItem(managedObjectContext: backingContext)
             context.obtainPermanentIDsForObjects([object], error: nil)
             if updateLocalObjectWithRecord(object, record: record) {
@@ -196,8 +197,8 @@ public class JLCloudKitSync: NSObject {
             operation.modifyRecordsCompletionBlock = { saved, deleted, err in
                 self.info("modifications applied to server, \( saved.count ) saved, \( deleted.count ) deleted,  error: \( err )")
                 
-                self.markSyncQueueClean(saved as [CKRecord])
-                self.removeFromSyncQueue(deleted.map { ($0 as CKRecordID).recordName! })
+                self.markSyncQueueClean(saved as! [CKRecord])
+                self.removeFromSyncQueue(deleted.map { ($0 as! CKRecordID).recordName! })
                 self.saveBackingContext()
                 
                 self.fetchServerChanges(self.previousToken(), completionHandler: {
@@ -309,10 +310,10 @@ public class JLCloudKitSync: NSObject {
 
     // Map a single local object to record
     func updateRecordWithLocalObject(record: CKRecord, object: NSManagedObject) {
-        for (k, _) in object.entity.attributesByName as [String:AnyObject] {
+        for (k, _) in object.entity.attributesByName as! [String:AnyObject] {
             record.setValue(object.valueForKey(k), forKey: k)
         }
-        for (name, rel) in object.entity.relationshipsByName as [String:NSRelationshipDescription] {
+        for (name, rel) in object.entity.relationshipsByName as! [String:NSRelationshipDescription] {
             if rel.toMany {
                 // ignore
             } else {
@@ -348,7 +349,7 @@ public class JLCloudKitSync: NSObject {
         var records: [CKRecord] = [ ]
         let operation = CKFetchRecordsOperation(recordIDs: recordIDs.map { CKRecordID(recordName: $0, zoneID: self.zoneID) })
         operation.fetchRecordsCompletionBlock = { results, err in
-            for (recordID, record) in results as [ CKRecordID: CKRecord ] {
+            for (recordID, record) in results as! [ CKRecordID: CKRecord ] {
                 let item = syncItemMappings[recordID.recordName!]!
                 let object = objects.removeValueForKey(recordID.recordName)!
                 if item.lastModified!.earlierDate(record.modificationDate) == record.modificationDate {
@@ -374,7 +375,7 @@ public class JLCloudKitSync: NSObject {
     
     func addAllLocalDataToSyncQueue() {
         var count = 0
-        for e in context.persistentStoreCoordinator!.managedObjectModel.entities as [NSEntityDescription] {
+        for e in context.persistentStoreCoordinator!.managedObjectModel.entities as! [NSEntityDescription] {
             let req = NSFetchRequest(entityName: e.name!)
             req.predicate = NSPredicate(value: true)
             let results = context.executeFetchRequest(req, error: nil) as? [NSManagedObject]
@@ -389,10 +390,10 @@ public class JLCloudKitSync: NSObject {
     func updateLocalObjectWithRecord(object: NSManagedObject, record: CKRecord) -> Bool {
         var clean = true
         
-        for (k, _) in object.entity.attributesByName as [String:AnyObject] {
+        for (k, _) in object.entity.attributesByName as! [String:AnyObject] {
             object.setValue(record.valueForKey(k), forKey: k)
         }
-        for (name, rel) in object.entity.relationshipsByName as [String:NSRelationshipDescription] {
+        for (name, rel) in object.entity.relationshipsByName as! [String:NSRelationshipDescription] {
             if rel.toMany {
                 // ignore
             } else {
@@ -418,8 +419,8 @@ public class JLCloudKitSync: NSObject {
         let req = NSFetchRequest(entityName: JLCloudKitItem.entityName())
         req.predicate = NSPredicate(format: "\( JLCloudKitItemAttribute.recordID.rawValue ) IN %@", recordIDs)
         if let results = self.backingContext.executeFetchRequest(req, error: nil) {
-            for item in results as [JLCloudKitItem] {
-                let objectID = context.persistentStoreCoordinator!.managedObjectIDForURIRepresentation(NSURL(string: item.localObjectID!)!)
+            for item in results as! [JLCloudKitItem] {
+                let objectID = context.persistentStoreCoordinator!.managedObjectIDForURIRepresentation(NSURL(string: item.localObjectID! as String)!)
                 if let obj = context.existingObjectWithID(objectID!, error: nil) {
                     objects[item.recordID!] = obj
                 } else {
@@ -437,7 +438,7 @@ public class JLCloudKitSync: NSObject {
         let request = NSFetchRequest(entityName: JLCloudKitItem.entityName())
         request.predicate = NSPredicate(format: "\( JLCloudKitItemAttribute.recordID.rawValue ) IN %@", recordNames)
         if let results = backingContext.executeFetchRequest(request, error: nil) {
-            return results as [JLCloudKitItem]
+            return results as! [JLCloudKitItem]
         }
         return [ ]
     }
@@ -533,7 +534,7 @@ public class JLCloudKitSync: NSObject {
     
     func storeURL() -> NSURL {
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        let url = urls.last! as NSURL
+        let url = urls.last! as! NSURL
         return url.URLByAppendingPathComponent("JLCloudKitSync.sqlite")
     }
     
@@ -564,7 +565,7 @@ public class JLCloudKitSync: NSObject {
     }
     
     func clearDataInLocalContext() {
-        for e in context.persistentStoreCoordinator!.managedObjectModel.entities as [NSEntityDescription] {
+        for e in context.persistentStoreCoordinator!.managedObjectModel.entities as! [NSEntityDescription] {
             clearData(context, entityName: e.name!)
         }
     }
@@ -573,7 +574,7 @@ public class JLCloudKitSync: NSObject {
         let req = NSFetchRequest(entityName: entityName)
         if let results = context.executeFetchRequest(req, error: nil) {
             for obj in results {
-                context.deleteObject(obj as NSManagedObject)
+                context.deleteObject(obj as! NSManagedObject)
             }
         }
     }
@@ -582,7 +583,7 @@ public class JLCloudKitSync: NSObject {
         let req = NSFetchRequest(entityName: JLCloudKitItem.entityName())
         req.predicate = NSPredicate(format: "\( JLCloudKitItemAttribute.recordID.rawValue ) IN %@", recordIDs)
         if let results = backingContext.executeFetchRequest(req, error: nil) {
-            for item in results as [NSManagedObject] {
+            for item in results as! [NSManagedObject] {
                 backingContext.deleteObject(item)
             }
         }
