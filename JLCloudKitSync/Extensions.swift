@@ -9,10 +9,10 @@
 import Foundation
 
 func <(lhs: NSDate, rhs: NSDate) -> Bool {
-    return lhs.earlierDate(rhs) == lhs && lhs.timeIntervalSince1970 != rhs.timeIntervalSince1970
+    return lhs.timeIntervalSinceReferenceDate < rhs.timeIntervalSinceReferenceDate
 }
 func >(lhs: NSDate, rhs: NSDate) -> Bool {
-    return lhs.earlierDate(rhs) == rhs && lhs.timeIntervalSince1970 != rhs.timeIntervalSince1970
+    return lhs.timeIntervalSinceReferenceDate > rhs.timeIntervalSinceReferenceDate
 }
 
 func AsyncOnMainQueue(block: dispatch_block_t) {

@@ -54,6 +54,7 @@ public class JLCloudKitSync: NSObject {
             } else {
                 backingContext.deleteObject(object!)
             }
+            _ = try? backingContext.save()
         }
         get {
             let req = NSFetchRequest(entityName: metaEntityName)
@@ -186,6 +187,7 @@ extension JLCloudKitSync {
             let record = changedRecordMappings[CKRecordID(recordName: item.recordID!, zoneID: zoneID)]!
             info("merge item \(item.lastModified) vs \(record.modificationDate)")
             
+            defer { changedRecordMappings.removeValueForKey(record.recordID) }
             guard item.lastModified! < record.modificationDate! else { return }
             
             // server record is newer
@@ -195,7 +197,6 @@ extension JLCloudKitSync {
             } else {
                 needProcessAgain.append(record, object, item)
             }
-            changedRecordMappings.removeValueForKey(record.recordID)
         }
         
         // newly inserted
@@ -284,7 +285,7 @@ extension JLCloudKitSync {
         ope.recordChangedBlock = { changed.append($0) }
         ope.recordWithIDWasDeletedBlock = { deleted.append($0) }
         ope.fetchRecordChangesCompletionBlock = { token, data, err in
-            self.info("Server change: \( changed.count ) changed, \( deleted.count ) deleted \( err )")
+            self.info("Server change: \(changed.count) changed, \(deleted.count) deleted, error \(err)")
             completionHandler(changed, deleted, token)
         }
         executeOperation(ope)
@@ -444,7 +445,10 @@ extension JLCloudKitSync {
         let recordNames = recordIDs.map { $0.recordName }
         let request = NSFetchRequest(entityName: JLCloudKitItem.entityName())
         request.predicate = NSPredicate(format: "\( JLCloudKitItemAttribute.recordID.rawValue ) IN %@", recordNames)
-        return (try? backingContext.executeFetchRequest(request) ?? [ ]) as! [JLCloudKitItem]
+        if let results = try? backingContext.executeFetchRequest(request) {
+            return results as! [JLCloudKitItem]
+        }
+        return [ ]
     }
     
     // MARK: Local Object to Sync Item
@@ -467,7 +471,7 @@ extension JLCloudKitSync {
         }
         item.setValue(object.objectID.URIRepresentation().absoluteString, forKey: JLCloudKitItemAttribute.localObjectID.rawValue)
         item.setValue(object.entity.name, forKey: JLCloudKitItemAttribute.type.rawValue)
-        item.setValue(NSDate(), forKey: JLCloudKitItemAttribute.lastModified.rawValue)
+        item.setValue(date, forKey: JLCloudKitItemAttribute.lastModified.rawValue)
         item.setValue(NSNumber(integer: status.rawValue), forKey: JLCloudKitItemAttribute.status.rawValue)
     }
 }
