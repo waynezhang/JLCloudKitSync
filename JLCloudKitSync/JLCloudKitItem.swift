@@ -10,17 +10,17 @@ import Foundation
 import CoreData
 
 enum JLCloudKitItemAttribute: String {
-    case type = "type"
-    case recordID = "recordID"
-    case localObjectID = "localObjectID"
-    case lastModified = "lastModified"
-    case status = "status"
+    case type
+    case recordID
+    case localObjectID
+    case lastModified
+    case status
 }
 
 enum JLCloudKitItemStatus: Int {
-    case Clean = 0
-    case Dirty = 1
-    case Deleted = 2
+    case Clean
+    case Dirty
+    case Deleted
 }
 
 @objc(JLCloudKitItem)

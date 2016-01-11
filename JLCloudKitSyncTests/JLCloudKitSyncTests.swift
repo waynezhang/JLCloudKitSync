@@ -178,7 +178,7 @@ class JLCloudKitSyncTests: XCTestCase {
         let query = CKQuery(recordType: "Group", predicate: NSPredicate(format: "name = %@", name))
         CKContainer.defaultContainer().privateCloudDatabase.performQuery(query, inZoneWithID: zoneID()) { records, error -> Void in
             XCTAssertNil(error, "")
-            XCTAssertEqual(exists, records != nil && records.count == 1, "")
+            XCTAssertEqual(exists, records != nil && records!.count == 1, "")
             ex.fulfill()
         }
         self.waitForExpectationsWithTimeout(5, handler: nil)
@@ -189,9 +189,9 @@ class JLCloudKitSyncTests: XCTestCase {
         let query = CKQuery(recordType: "Item", predicate: NSPredicate(format: "name = %@", name))
         CKContainer.defaultContainer().privateCloudDatabase.performQuery(query, inZoneWithID: zoneID()) { records, error -> Void in
             XCTAssertNil(error, "")
-            XCTAssertEqual(exists, records != nil && records.count == 1, "")
+            XCTAssertEqual(exists, records != nil && records!.count == 1, "")
             if exists {
-                XCTAssertNotNil(records[0].valueForKey("group") as? CKReference, "")
+                XCTAssertNotNil(records![0].valueForKey("group") as? CKReference, "")
             }
             ex.fulfill()
         }
@@ -245,7 +245,7 @@ class JLCloudKitSyncTests: XCTestCase {
         self.waitForExpectationsWithTimeout(5, handler: nil)
     }
     
-    func completionHandler(expectation: XCTestExpectation) -> ((AnyObject!, NSError!) -> Void) {
+    func completionHandler<T>(expectation: XCTestExpectation) -> ((T, NSError?) -> Void) {
         return { _, error in
             XCTAssertNil(error, "")
             expectation.fulfill()
@@ -255,7 +255,7 @@ class JLCloudKitSyncTests: XCTestCase {
     func fetchLocalObject(name: String, entityName: String) -> NSManagedObject? {
         let req = NSFetchRequest(entityName: entityName)
         req.predicate = NSPredicate(format: "name = %@", name)
-        if let rs = context.executeFetchRequest(req, error: nil) {
+        if let rs = try? context.executeFetchRequest(req) {
             if rs.count > 0 {
                 return rs[0] as? NSManagedObject
             }
@@ -266,7 +266,7 @@ class JLCloudKitSyncTests: XCTestCase {
     func deleteAllObject(name: String) {
         let req = NSFetchRequest(entityName: name)
         req.predicate = NSPredicate(value: true)
-        if let rs = self.context.executeFetchRequest(req, error: nil) {
+        if let rs = try? self.context.executeFetchRequest(req) {
             for e in rs {
                 self.context.deleteObject(e as! NSManagedObject)
             }
@@ -283,7 +283,13 @@ class JLCloudKitSyncTests: XCTestCase {
         }
         self.context.performBlockAndWait { () -> Void in
             var err: NSError?
-            self.context.save(&err)
+            do {
+                try self.context.save()
+            } catch let error as NSError {
+                err = error
+            } catch {
+                fatalError()
+            }
         }
     }
     
@@ -313,7 +319,7 @@ class JLCloudKitSyncTests: XCTestCase {
     lazy var applicationDocumentsDirectory: NSURL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "com.cesariapp.ios.JLCloudKitSyncTestsHost" in the application's documents Application Support directory.
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        return urls[urls.count-1] as! NSURL
+        return urls[urls.count-1] 
         }()
     
     lazy var managedObjectModel: NSManagedObjectModel = {
@@ -327,12 +333,18 @@ class JLCloudKitSyncTests: XCTestCase {
         // Create the coordinator and store
         var coordinator: NSPersistentStoreCoordinator? = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
         let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("JLCloudKitSyncTestsHost.sqlite")
-        println("host database \( url )")
-        NSFileManager.defaultManager().removeItemAtURL(url, error: nil)
+        print("host database \( url )")
+        do {
+            try NSFileManager.defaultManager().removeItemAtURL(url)
+        } catch _ {
+        }
         
         var error: NSError? = nil
         var failureReason = "There was an error creating or loading the application's saved data."
-        if coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil, error: &error) == nil {
+        do {
+            try coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
+        } catch var error1 as NSError {
+            error = error1
             coordinator = nil
             // Report any error we got.
             var dict = [String: AnyObject]()
@@ -344,6 +356,8 @@ class JLCloudKitSyncTests: XCTestCase {
             // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             NSLog("Unresolved error \(error), \(error!.userInfo)")
             abort()
+        } catch {
+            fatalError()
         }
         
         return coordinator
@@ -363,7 +377,13 @@ class JLCloudKitSyncTests: XCTestCase {
     func saveContext() {
         self.context.performBlock { () -> Void in
             var err: NSError?
-            self.context.save(&err)
+            do {
+                try self.context.save()
+            } catch let error as NSError {
+                err = error
+            } catch {
+                fatalError()
+            }
         }
     }
 }

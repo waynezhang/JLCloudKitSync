@@ -272,6 +272,8 @@
 		B0192C841AB66FD600214C0A /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftMigration = 0720;
+				LastSwiftUpdateCheck = 0720;
 				LastUpgradeCheck = 0620;
 				ORGANIZATIONNAME = "Linghua Zhang";
 				TargetAttributes = {
@@ -285,7 +287,7 @@
 					};
 					B0192D181AB69D8D00214C0A = {
 						CreatedOnToolsVersion = 6.2;
-						DevelopmentTeam = 2QZXS7U3YD;
+						DevelopmentTeam = 7CF4QKSQSR;
 						SystemCapabilities = {
 							com.apple.iCloud = {
 								enabled = 1;
