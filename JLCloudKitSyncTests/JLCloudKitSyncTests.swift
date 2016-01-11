@@ -10,33 +10,7 @@ import UIKit
 import XCTest
 import CoreData
 import CloudKit
-import JLCloudKitSync
-
-//@objc class Group: NSManagedObject {
-//    class func entityName () -> String { return "Group" }
-//    class func entity(managedObjectContext: NSManagedObjectContext!) -> NSEntityDescription! {
-//        return NSEntityDescription.entityForName(self.entityName(), inManagedObjectContext: managedObjectContext);
-//    }
-//    convenience init(managedObjectContext: NSManagedObjectContext!) {
-//        let entity = Group.entity(managedObjectContext)
-//        self.init(entity: entity, insertIntoManagedObjectContext: managedObjectContext)
-//    }
-//    @NSManaged var name: String?
-//    @NSManaged var items: NSSet
-//}
-//
-//@objc class Item: NSManagedObject {
-//    class func entityName () -> String { return "Item" }
-//    class func entity(managedObjectContext: NSManagedObjectContext!) -> NSEntityDescription! {
-//        return NSEntityDescription.entityForName(self.entityName(), inManagedObjectContext: managedObjectContext);
-//    }
-//    convenience init(managedObjectContext: NSManagedObjectContext!) {
-//        let entity = Item.entity(managedObjectContext)
-//        self.init(entity: entity, insertIntoManagedObjectContext: managedObjectContext)
-//    }
-//    @NSManaged var name: String?
-//    @NSManaged var group: Group?
-//}
+@testable import JLCloudKitSync
 
 class JLCloudKitSyncTests: XCTestCase {
     
@@ -98,7 +72,7 @@ class JLCloudKitSyncTests: XCTestCase {
         ensureGroupExists("Group 1", exists: false)
         ensureItemExists("Item 1", hasGroup: "", exists: false)
         
-        let ex = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
+        _ = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
         syncer.performFullSync(JLCloudKitFullSyncPolicy.ReplaceDataOnCloudKit)
         self.waitForExpectationsWithTimeout(5, handler: nil)
         
@@ -117,7 +91,7 @@ class JLCloudKitSyncTests: XCTestCase {
         ensureGroupExists("Group 1", exists: false)
         ensureItemExists("Item 1", hasGroup: "", exists: false)
         
-        let ex = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
+        _ = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
         syncer.performFullSync(JLCloudKitFullSyncPolicy.ReplaceDataOnLocal)
         self.waitForExpectationsWithTimeout(50, handler: nil)
         
@@ -137,7 +111,7 @@ class JLCloudKitSyncTests: XCTestCase {
         XCTAssertEqual((item!.valueForKey("group")! as! NSManagedObject).objectID, group!.objectID, "")
         
         group!.setValue("Group 3", forKey: "name")
-        let ex1 = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
+        _ = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
         saveContext()
         self.waitForExpectationsWithTimeout(50, handler: nil)
         sleep(3)
@@ -149,7 +123,7 @@ class JLCloudKitSyncTests: XCTestCase {
         let group = groupWithName("Group 2")
         let item = itemWithName("Item 11", group: group)
         
-        let ex1 = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
+        _ = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
         self.saveContext()
         self.waitForExpectationsWithTimeout(10, handler: nil)
         
@@ -157,7 +131,7 @@ class JLCloudKitSyncTests: XCTestCase {
         ensureGroupExists("Group 2", exists: true)
         ensureItemExists("Item 11", hasGroup: "Group 2", exists: true)
         
-        let ex2 = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
+        _ = self.expectationForNotification(JLCloudKitSyncDidEndNotification, object: nil, handler: nil)
         item.setValue("Item 22", forKey: "name")
         self.saveContext()
         self.waitForExpectationsWithTimeout(5, handler: nil)
@@ -282,11 +256,9 @@ class JLCloudKitSyncTests: XCTestCase {
             itemWithName("Item \( i )", group: group)
         }
         self.context.performBlockAndWait { () -> Void in
-            var err: NSError?
             do {
                 try self.context.save()
-            } catch let error as NSError {
-                err = error
+            } catch _ as NSError {
             } catch {
                 fatalError()
             }
@@ -376,11 +348,9 @@ class JLCloudKitSyncTests: XCTestCase {
     
     func saveContext() {
         self.context.performBlock { () -> Void in
-            var err: NSError?
             do {
                 try self.context.save()
-            } catch let error as NSError {
-                err = error
+            } catch _ as NSError {
             } catch {
                 fatalError()
             }
